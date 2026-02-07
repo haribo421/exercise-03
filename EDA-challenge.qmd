@@ -1,0 +1,97 @@
+---
+title: "EDA-challenge"
+author: "Stella Lin"
+format: html
+editor: visual
+---
+
+```{r}
+f <- "https://raw.githubusercontent.com/difiore/ada-datasets/main/data-wrangling.csv"
+library(readr)
+library(ggplot2)
+library(dplyr)
+d <- read_csv(f, col_names = TRUE)
+
+# creating a new column named BSD
+d <- d |>
+  mutate(BSD = Body_mass_male_mean/Body_mass_female_mean)
+```
+
+```{r}
+# Create a new variable named sex_ratio, which is the ratio of the number of adult females to adult males in a typical group.
+
+d <- d |>
+  mutate(sex_ratio = AdultFemale/AdultMales)
+```
+
+```{r}
+# Create a new variable named DI (for “defensibility index”), which is the ratio of day range length to the diameter of the home range.
+
+d <- d |>
+  mutate(HomeRangeD = sqrt(HomeRange_km2/pi)) |> # make a temporary column for the diameter of the home range 
+  mutate(DI = DayLength_km/HomeRangeD)
+```
+
+```{r}
+ggplot(d, aes(Move, DayLength_km)) +
+  geom_point()
+
+ggplot(d, aes(Move, DayLength_km)) +
+  geom_point() +
+  facet_wrap(vars(Family)) + # facet wrap to sort the plot accoring to different family
+  labs(x = "Time Spent Moving", y = "Day Range Length")
+```
+
+Question 4: Do species that spend more time moving travel farther overall? How about within any particular primate family? Should you transform either of these variables? Why or why not?
+
+A: No, species that spend more time moving don't travel farther overall. Cercopithecidae seems to be the only group that moves more and travels farther. We should, so we can further analyse if there is more potential relationships.
+
+```{r}
+ggplot(d, aes(MeanGroupSize, DayLength_km)) +
+  geom_point()
+
+ggplot(d, aes(MeanGroupSize, DayLength_km)) +
+  geom_point() +
+  facet_wrap(vars(Family)) # facet wrap to sort the plot accoring to different family
+```
+
+Question 5: Do species that live in larger groups travel farther, overall, in a day? How about within any particular primate family? Should you transform either of these variables?
+
+Answer: Yes, species that live in larger groups travel farther overall in a day. Cercopithecidae tends to travel farther with larger group sizes. No, this plot is more indicative.
+
+```{r}
+ggplot(d, aes(BSD, Canine_Dimorphism)) +
+  geom_jitter() +
+  labs(x = "Body Size Dimorphism", y = "Canine Size Dimorphism") # changing label names for better visualiation
+
+ggplot(d, aes(BSD, Canine_Dimorphism)) +
+  geom_jitter() +
+  labs(x = "Body Size Dimorphism", y = "Canine Size Dimorphism") +
+  facet_wrap(vars(Family))
+```
+
+Question 6: Do taxa with greater size dimorphism also show greater canine dimorphism?
+
+Answer: Yes, taxa with greater size dimorphism also show greater canine dimorphism
+
+```{r}
+d <- mutate(d, diet_strategy = ifelse(Fruit >= 50, "frugivore", ifelse(Leaves >= 50, "folivore", ifelse(Fruit < 50 & Leaves < 50, "omnivore", NA))))
+
+ggplot(na.omit(d), aes(MeanGroupSize, diet_strategy))+ # na.omit takes out the NA values in d
+  geom_boxplot() 
+```
+
+Question 7: Then, create boxplots of group size for species with different dietary strategies, omitting the category `NA` from your plot. Do frugivores live in larger groups than folivores?
+
+Answer: Yes, frugivores do live in larger groups than folivores.
+
+-   
+
+    ```{r}
+    d <- mutate(d, Binomial = paste(Genus, Species)) |> # the paste function combines two clolumn together
+      select(Binomial, Family, Brain_Size_Species_Mean, Body_mass_male_mean) |> # only selecting the above column to create a new data
+      group_by(Family) |> # group by family 
+      arrange(Family) |> # arrange by family for visual purpose
+      mutate(Average_BrainSize_BodyMass = mean(Brain_Size_Species_Mean + Body_mass_male_mean, na.rm = TRUE)) |> # create a new column to calculate the mean between the two variables, and omit NA values
+      arrange(Brain_Size_Species_Mean) # arrange in ascending order according to brain sizes
+    ```
